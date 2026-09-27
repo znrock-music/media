@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>send a song · ZN Rock</title>
+<meta name="description" content="Say the thing you never say out loud, with a song. Make a card, send the link.">
+<meta property="og:title" content="someone sent you a song">
+<meta property="og:description" content="open it. it's short.">
+<meta property="og:image" content="https://znrock-music.github.io/media/media/send/og.jpg">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#0d0d0e;--panel:#17171a;--line:#2a2a2f;--text:#ecebe8;--muted:#9b9a97;--red:#e03c31;--red-dim:#8f2a23}
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 Inter,system-ui,sans-serif}
+  main{max-width:560px;margin:0 auto;padding:28px 16px 64px}
+  h1{font:400 44px/1 Anton,Impact,sans-serif;letter-spacing:.5px;margin:0 0 6px;text-transform:uppercase}
+  h1 span{color:var(--red)}
+  .sub{color:var(--muted);margin:0 0 26px}
+  h2{font:700 13px/1 Inter,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:26px 0 12px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{background:var(--panel);border:1px solid var(--line);color:var(--text);border-radius:999px;padding:9px 14px;
+        font:600 14px Inter,sans-serif;cursor:pointer}
+  .chip[aria-pressed=true]{background:var(--red);border-color:var(--red);color:#fff}
+  label{display:block;font-size:14px;color:var(--muted);margin:14px 0 6px}
+  input,textarea{width:100%;background:var(--panel);border:1px solid var(--line);color:var(--text);border-radius:10px;
+        padding:12px 14px;font:16px Inter,sans-serif;resize:none}
+  input:focus,textarea:focus{outline:2px solid var(--red);border-color:transparent}
+  .count{text-align:right;font-size:12px;color:var(--muted);margin-top:4px}
+  canvas{width:100%;height:auto;display:block;border-radius:12px;margin-top:22px;background:#000}
+  .btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+  button.act{background:var(--red);color:#fff;border:0;border-radius:10px;padding:14px 10px;font:700 15px Inter,sans-serif;cursor:pointer}
+  button.act.alt{background:var(--panel);border:1px solid var(--line);color:var(--text)}
+  button.act.wide{grid-column:1/-1}
+  button:disabled{opacity:.45;cursor:default}
+  .note{color:var(--muted);font-size:13px;margin-top:14px}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#fff;color:#111;padding:10px 16px;
+        border-radius:999px;font:600 14px Inter,sans-serif;opacity:0;transition:opacity .2s;pointer-events:none}
+  .toast.on{opacity:1}
+  iframe{width:100%;height:152px;border:0;border-radius:12px;margin-top:16px}
+  footer{margin-top:40px;color:var(--muted);font-size:13px;text-align:center}
+  footer a{color:var(--muted)}
+  [hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+  <section id="make">
+    <h1>send a <span>song</span></h1>
+    <p class="sub">for the thing you never say out loud. pick who it's for, say it once, send the link.</p>
+
+    <h2>who's it for</h2>
+    <div class="chips" id="chips" role="group" aria-label="who is it for"></div>
+
+    <label for="to">their name (optional)</label>
+    <input id="to" maxlength="24" autocomplete="off" placeholder="e.g. danny">
+    <label for="msg">the thing you'd never say</label>
+    <textarea id="msg" rows="3" maxlength="140" placeholder="say it here. they'll see it, nobody else."></textarea>
+    <div class="count"><span id="n">0</span>/140</div>
+
+    <canvas id="card" width="1080" height="1350" aria-label="your card"></canvas>
+    <div class="btns">
+      <button class="act" id="share">send it</button>
+      <button class="act alt" id="copy">copy their link</button>
+      <button class="act alt wide" id="save">save the card</button>
+    </div>
+    <p class="note">nothing you type is stored anywhere. it lives only inside the link you send.</p>
+  </section>
+
+  <section id="view" hidden>
+    <h1>someone sent you<br>a <span>song</span></h1>
+    <canvas id="vcard" width="1080" height="1350" aria-label="the card they sent"></canvas>
+    <iframe id="player" title="the song" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+    <div class="btns"><button class="act wide" id="back">send one back</button></div>
+  </section>
+
+  <footer>ZN Rock · <a href="https://open.spotify.com/artist/6tluS6HdyyZDlnuFtp6l55" rel="noopener">spotify</a></footer>
+</main>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const BASE = "./";
+const $ = id => document.getElementById(id);
+let SONGS = [], pick = null;
+
+// message lives only in the URL fragment (never sent to any server): #d=<base64url(JSON)>
+const enc = o => btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(o)))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+const dec = s => JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(s.replace(/-/g,"+").replace(/_/g,"/")), c => c.charCodeAt(0))));
+const clean = (s, n) => String(s || "").replace(/[\u0000-\u001f]/g, " ").slice(0, n).trim();
+
+function toast(t){ const e=$("toast"); e.textContent=t; e.classList.add("on"); setTimeout(()=>e.classList.remove("on"),1800); }
+
+const imgs = {};
+function bg(slug){ return imgs[slug] ||= new Promise(r=>{ const i=new Image(); i.crossOrigin="anonymous"; i.onload=()=>r(i); i.onerror=()=>r(null); i.src=BASE+"bg/"+slug+".jpg"; }); }
+
+function greedy(ctx, words, maxW){
+  const rows = []; let cur = "";
+  for (const w of words){ const t = cur ? cur+" "+w : w; if (ctx.measureText(t).width > maxW && cur){ rows.push(cur); cur = w; } else cur = t; }
+  if (cur) rows.push(cur); return rows;
+}
+// same number of rows as a greedy wrap, but as even as possible (no lone last word)
+function wrap(ctx, text, maxW){
+  const words = text.split(/\s+/).filter(Boolean), n = greedy(ctx, words, maxW).length;
+  let lo = 100, hi = maxW;
+  while (hi - lo > 4){ const mid = (lo + hi) / 2; if (greedy(ctx, words, mid).length > n) lo = mid; else hi = mid; }
+  return greedy(ctx, words, hi);
+}
+
+async function draw(canvas, song, msg, to){
+  const ctx = canvas.getContext("2d"), W = 1080, H = 1350;
+  const im = await bg(song.slug);
+  ctx.fillStyle = "#000"; ctx.fillRect(0,0,W,H);
+  if (im){ const s = Math.max(W/im.width, H/im.height); ctx.drawImage(im,(W-im.width*s)/2,(H-im.height*s)/2,im.width*s,im.height*s); }
+  const g = ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,"rgba(0,0,0,.55)"); g.addColorStop(.45,"rgba(0,0,0,.35)"); g.addColorStop(1,"rgba(0,0,0,.8)");
+  ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+  ctx.textAlign = "center"; ctx.lineJoin = "round";
+  const stroke = (t,x,y,w)=>{ ctx.lineWidth=w; ctx.strokeStyle="rgba(0,0,0,.85)"; ctx.strokeText(t,x,y); ctx.fillText(t,x,y); };
+  ctx.fillStyle = "#e03c31"; ctx.font = "600 44px Inter, sans-serif";
+  stroke(to ? "to " + to : "for " + song.who, W/2, 150, 6);
+  const text = msg || "say the thing you never say";
+  let size = 96; ctx.font = `${size}px Anton, Impact, sans-serif`;
+  let rows = wrap(ctx, "“" + text + "”", 900);
+  while (rows.length > 5 && size > 56){ size -= 8; ctx.font = `${size}px Anton, Impact, sans-serif`; rows = wrap(ctx, "“"+text+"”", 900); }
+  ctx.fillStyle = msg ? "#fff" : "rgba(255,255,255,.55)";
+  const lh = size*1.12, y0 = 560 - (rows.length-1)*lh/2;
+  rows.forEach((r,i)=>stroke(r.toUpperCase(), W/2, y0+i*lh, 10));
+  ctx.fillStyle = "#e03c31"; ctx.font = "52px Anton, Impact, sans-serif";
+  song.lines.forEach((l,i)=>stroke(l.toUpperCase(), W/2, 1030+i*62, 7));
+  ctx.fillStyle = "#fff"; ctx.font = "600 38px Inter, sans-serif";
+  stroke(song.title + "  ·  ZN Rock", W/2, 1230, 5);
+}
+
+function link(){ return location.origin + location.pathname + "#d=" + enc({s: pick.slug, m: clean($("msg").value,140), t: clean($("to").value,24)}); }
+async function refresh(){ $("n").textContent = $("msg").value.length; if (pick) await draw($("card"), pick, clean($("msg").value,140), clean($("to").value,24)); }
+
+function cardBlob(){ return new Promise(r=>$("card").toBlob(r,"image/png")); }
+
+async function init(){
+  SONGS = await (await fetch(BASE + "songs.json")).json();
+  await document.fonts.load("96px Anton"); await document.fonts.load("600 44px Inter");
+  const m = location.hash.match(/#d=([A-Za-z0-9_-]+)/);
+  if (m){
+    try{
+      const d = dec(m[1]); const song = SONGS.find(s=>s.slug===d.s) || SONGS[0];
+      $("make").hidden = true; $("view").hidden = false;
+      await draw($("vcard"), song, clean(d.m,140), clean(d.t,24));
+      $("player").src = "https://open.spotify.com/embed/track/" + song.spotify + "?utm_source=generator&theme=0";
+      $("back").onclick = ()=>{ location.hash = ""; location.reload(); };
+      return;
+    }catch(e){ /* bad link: fall through to the maker */ }
+  }
+  const chips = $("chips");
+  SONGS.forEach((s,i)=>{ const b=document.createElement("button"); b.className="chip"; b.type="button"; b.textContent=s.who;
+    b.setAttribute("aria-pressed", i===0); b.onclick=()=>{ pick=s; [...chips.children].forEach(c=>c.setAttribute("aria-pressed", c===b)); refresh(); };
+    chips.appendChild(b); });
+  pick = SONGS[0];
+  $("msg").oninput = refresh; $("to").oninput = refresh;
+  $("copy").onclick = async ()=>{ try{ await navigator.clipboard.writeText(link()); toast("link copied"); }catch(e){ prompt("copy their link:", link()); } };
+  $("save").onclick = async ()=>{ const b = await cardBlob(); const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = "for-" + (clean($("to").value,24) || "you") + ".png"; a.click(); };
+  $("share").onclick = async ()=>{
+    const url = link(), b = await cardBlob(), file = new File([b], "song-card.png", {type:"image/png"});
+    try{
+      if (navigator.canShare && navigator.canShare({files:[file]})) await navigator.share({files:[file], text: url});
+      else if (navigator.share) await navigator.share({url, text: "this one's for you"});
+      else { await navigator.clipboard.writeText(url); toast("link copied, paste it to them"); }
+    }catch(e){ /* share sheet closed */ }
+  };
+  refresh();
+}
+init();
+</script>
+</body>
+</html>
