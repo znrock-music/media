@@ -42,7 +42,8 @@
   .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#fff;color:#111;padding:10px 16px;
         border-radius:999px;font:600 14px Inter,sans-serif;opacity:0;transition:opacity .2s;pointer-events:none}
   .toast.on{opacity:1}
-  iframe{width:100%;height:152px;border:0;border-radius:12px;margin-top:16px}
+  iframe{width:100%;aspect-ratio:16/9;height:auto;border:0;border-radius:12px;margin-top:16px;background:#000}
+  a.act{display:flex;align-items:center;justify-content:center;text-decoration:none;background:var(--red);color:#fff;border-radius:10px;padding:14px 10px;font:700 15px Inter,sans-serif}
   footer{margin-top:40px;color:var(--muted);font-size:13px;text-align:center}
   footer a{color:var(--muted)}
   [hidden]{display:none!important}
@@ -75,11 +76,14 @@
   <section id="view" hidden>
     <h1>someone sent you<br>a <span>song</span></h1>
     <canvas id="vcard" width="1080" height="1350" aria-label="the card they sent"></canvas>
-    <iframe id="player" title="the song" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
-    <div class="btns"><button class="act wide" id="back">send one back</button></div>
+    <iframe id="player" title="the song" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen loading="lazy"></iframe>
+    <div class="btns">
+      <a class="act" id="listen" target="_blank" rel="noopener">listen in your app</a>
+      <button class="act alt" id="back">send one back</button>
+    </div>
   </section>
 
-  <footer>ZN Rock · <a href="https://open.spotify.com/artist/6tluS6HdyyZDlnuFtp6l55" rel="noopener">spotify</a></footer>
+  <footer>ZN Rock · <a href="https://distrokid.com/hyperfollow/znrock/rock-x-vol-2" rel="noopener">listen anywhere</a></footer>
 </main>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -149,7 +153,9 @@ async function init(){
       const d = dec(m[1]); const song = SONGS.find(s=>s.slug===d.s) || SONGS[0];
       $("make").hidden = true; $("view").hidden = false;
       await draw($("vcard"), song, clean(d.m,140), clean(d.t,24));
-      $("player").src = "https://open.spotify.com/embed/track/" + song.spotify + "?utm_source=generator&theme=0";
+      // YouTube plays the full song for anyone (no app, no login); "listen in your app" opens the album on every store
+      $("player").src = "https://www.youtube-nocookie.com/embed/" + song.yt + "?rel=0";
+      $("listen").href = song.listen;
       $("back").onclick = ()=>{ location.hash = ""; location.reload(); };
       return;
     }catch(e){ /* bad link: fall through to the maker */ }
