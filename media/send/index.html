@@ -37,6 +37,9 @@
   button.act{background:var(--red);color:#fff;border:0;border-radius:10px;padding:14px 10px;font:700 15px Inter,sans-serif;cursor:pointer}
   button.act.alt{background:var(--panel);border:1px solid var(--line);color:var(--text)}
   button.act.wide{grid-column:1/-1}
+  .another{display:block;margin:10px auto 0;background:none;border:1px solid var(--line);color:var(--text);border-radius:999px;
+        padding:8px 16px;font:600 14px Inter,sans-serif;cursor:pointer}
+  .another[hidden]{display:none}
   button:disabled{opacity:.45;cursor:default}
   .note{color:var(--muted);font-size:13px;margin-top:14px}
   .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#fff;color:#111;padding:10px 16px;
@@ -65,6 +68,7 @@
     <div class="count"><span id="n">0</span>/140</div>
 
     <canvas id="card" width="1080" height="1350" aria-label="your card"></canvas>
+    <button class="another" id="another" type="button">try another song</button>
     <div class="btns">
       <button class="act" id="share">send it</button>
       <button class="act alt" id="copy">copy their link</button>
@@ -90,7 +94,7 @@
 <script>
 const BASE = "./";
 const $ = id => document.getElementById(id);
-let SONGS = [], pick = null;
+let SONGS = [], pick = null, occ = null, alt = 0;   // occ = the occasion chip; pick = the song on the card (occasion song or one of its alts)
 
 // message lives only in the URL fragment (never sent to any server): #d=<base64url(JSON)>
 const enc = o => btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(o)))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
@@ -115,7 +119,7 @@ function wrap(ctx, text, maxW){
   return greedy(ctx, words, hi);
 }
 
-async function draw(canvas, song, msg, to){
+async function draw(canvas, song, msg, to, who){
   const ctx = canvas.getContext("2d"), W = 1080, H = 1350;
   const im = await bg(song.slug);
   ctx.fillStyle = "#000"; ctx.fillRect(0,0,W,H);
@@ -125,7 +129,7 @@ async function draw(canvas, song, msg, to){
   ctx.textAlign = "center"; ctx.lineJoin = "round";
   const stroke = (t,x,y,w)=>{ ctx.lineWidth=w; ctx.strokeStyle="rgba(0,0,0,.85)"; ctx.strokeText(t,x,y); ctx.fillText(t,x,y); };
   ctx.fillStyle = "#e03c31"; ctx.font = "600 44px Inter, sans-serif";
-  stroke(to ? "to " + to : "for " + song.who, W/2, 150, 6);
+  stroke(to ? "to " + to : "for " + (who || song.who), W/2, 150, 6);
   const text = msg || "say the thing you never say";
   let size = 96; ctx.font = `${size}px Anton, Impact, sans-serif`;
   let rows = wrap(ctx, "“" + text + "”", 900);
@@ -139,8 +143,10 @@ async function draw(canvas, song, msg, to){
   stroke(song.title + "  ·  ZN Rock", W/2, 1230, 5);
 }
 
-function link(){ return location.origin + location.pathname + "#d=" + enc({s: pick.slug, m: clean($("msg").value,140), t: clean($("to").value,24)}); }
-async function refresh(){ $("n").textContent = $("msg").value.length; if (pick) await draw($("card"), pick, clean($("msg").value,140), clean($("to").value,24)); }
+function link(){ return location.origin + location.pathname + "#d=" + enc({s: pick.slug, o: occ.slug, m: clean($("msg").value,140), t: clean($("to").value,24)}); }
+async function refresh(){ $("n").textContent = $("msg").value.length; if (pick) await draw($("card"), pick, clean($("msg").value,140), clean($("to").value,24), occ && occ.who); }
+const options = () => [occ.slug, ...(occ.alts || [])].map(sl => SONGS.find(x => x.slug === sl)).filter(Boolean);
+function label(){ const n = options().length; $("another").hidden = n < 2; $("another").textContent = "try another song (" + (alt + 1) + "/" + n + ")"; }
 
 function cardBlob(){ return new Promise(r=>$("card").toBlob(r,"image/png")); }
 
@@ -150,9 +156,9 @@ async function init(){
   const m = location.hash.match(/#d=([A-Za-z0-9_-]+)/);
   if (m){
     try{
-      const d = dec(m[1]); const song = SONGS.find(s=>s.slug===d.s) || SONGS[0];
+      const d = dec(m[1]); const song = SONGS.find(s=>s.slug===d.s) || SONGS[0]; const o = SONGS.find(s=>s.slug===d.o) || song;
       $("make").hidden = true; $("view").hidden = false;
-      await draw($("vcard"), song, clean(d.m,140), clean(d.t,24));
+      await draw($("vcard"), song, clean(d.m,140), clean(d.t,24), o.who || song.who);
       // YouTube plays the full song for anyone (no app, no login); "listen in your app" opens the album on every store
       $("player").src = "https://www.youtube-nocookie.com/embed/" + song.yt + "?rel=0";
       $("listen").href = song.listen;
@@ -161,10 +167,11 @@ async function init(){
     }catch(e){ /* bad link: fall through to the maker */ }
   }
   const chips = $("chips");
-  SONGS.forEach((s,i)=>{ const b=document.createElement("button"); b.className="chip"; b.type="button"; b.textContent=s.who;
-    b.setAttribute("aria-pressed", i===0); b.onclick=()=>{ pick=s; [...chips.children].forEach(c=>c.setAttribute("aria-pressed", c===b)); refresh(); };
+  SONGS.filter(s=>!s.alt_only).forEach((s,i)=>{ const b=document.createElement("button"); b.className="chip"; b.type="button"; b.textContent=s.who;
+    b.setAttribute("aria-pressed", i===0); b.onclick=()=>{ occ=s; pick=s; alt=0; label(); [...chips.children].forEach(c=>c.setAttribute("aria-pressed", c===b)); refresh(); };
     chips.appendChild(b); });
-  pick = SONGS[0];
+  occ = pick = SONGS.find(s=>!s.alt_only); alt = 0; label();
+  $("another").onclick = ()=>{ const o = options(); alt = (alt + 1) % o.length; pick = o[alt]; label(); refresh(); };
   $("msg").oninput = refresh; $("to").oninput = refresh;
   $("copy").onclick = async ()=>{ try{ await navigator.clipboard.writeText(link()); toast("link copied"); }catch(e){ prompt("copy their link:", link()); } };
   $("save").onclick = async ()=>{ const b = await cardBlob(); const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = "for-" + (clean($("to").value,24) || "you") + ".png"; a.click(); };
