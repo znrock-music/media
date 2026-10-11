@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Still A Spark · ZN Rock</title>
+<meta name="description" content="ZN Rock, Still A Spark: keeping one spark alive on a bad night. Start here, one song, then your music app.">
+<link rel="canonical" href="https://znrock-music.github.io/media/start/">
+<meta property="og:title" content="Still A Spark · ZN Rock"><meta property="og:description" content="keeping one spark alive on a bad night. One song to start with.">
+<meta property="og:image" content="https://znrock-music.github.io/media/media/home/vol1.jpg"><meta property="og:type" content="music.song">
+<meta name="twitter:card" content="summary_large_image"><link rel="icon" href="https://znrock-music.github.io/media/media/send/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0d0d0e;--panel:#17171a;--line:#2a2a2f;--text:#ecebe8;--muted:#9b9a97;--red:#e03c31;--green:#1ed760}
+*{box-sizing:border-box} html,body{margin:0;background:var(--bg);color:var(--text);font:17px/1.5 Inter,system-ui,sans-serif}
+a{color:inherit} main{max-width:520px;margin:0 auto;padding:28px 16px 56px}
+.who{font:700 12px/1 Inter,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:0 0 18px}
+.cover{width:100%;aspect-ratio:1;border-radius:16px;display:block;border:1px solid var(--line)}
+h1{font:400 52px/.95 Anton,Impact,sans-serif;text-transform:uppercase;margin:20px 0 6px;letter-spacing:.5px}
+.tag{color:var(--muted);margin:0 0 22px;font-size:18px}
+.step{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;margin:0 0 12px}
+.step b{display:block;font:700 12px/1 Inter,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 12px}
+.step p{margin:12px 0 0;color:var(--muted);font-size:15px}
+.btn{display:block;text-align:center;text-decoration:none;font-weight:800;font-size:19px;padding:16px 18px;border-radius:999px;background:var(--green);color:#000}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--text);font-size:17px}
+.hint{display:none;background:#2a1d10;border:1px solid #5a3a14;border-radius:12px;padding:12px 14px;font-size:15px;margin:0 0 14px}
+.more{color:var(--muted);font-size:15px;margin:22px 0 0} .more a{color:var(--text)}
+footer{margin-top:30px;color:var(--muted);font-size:14px}
+@media (max-width:400px){h1{font-size:44px}}
+</style></head>
+<body><main>
+<p class="who">ZN Rock · start with one song</p>
+<img class="cover" src="https://znrock-music.github.io/media/media/home/vol1.jpg" alt="Rock X, Vol. 1 cover">
+<h1>Still A Spark</h1>
+<p class="tag">Keeping one spark alive on a bad night.</p>
+<div class="hint" id="hint">Inside this app the button can open a web player instead of Spotify. If it does, tap the
+<b>...</b> menu at the top and pick <b>Open in browser</b>, then tap the button again.</div>
+<div class="step"><b>1 · Play it</b><a class="btn" data-sp="track" data-id="0AGOXHycbiTXEx8h6R7gCH" href="https://open.spotify.com/track/0AGOXHycbiTXEx8h6R7gCH">Play it in Spotify</a></div>
+<div class="step"><b>2 · If it sticks</b><a class="btn ghost" data-sp="artist" data-id="6tluS6HdyyZDlnuFtp6l55" href="https://open.spotify.com/artist/6tluS6HdyyZDlnuFtp6l55">Follow ZN Rock on Spotify</a>
+<p>Tap the heart on the song so you find it again. Following means the next song shows up in your Release Radar.</p></div>
+<p class="more">No Spotify? <a href="https://music.apple.com/us/album/still-a-spark/6814056108?i=6814056117">Apple Music</a> · <a href="https://music.youtube.com/watch?v=CB3UW1m8zRE">YouTube Music</a> · <a href="https://music.lnk.to/TY32tV">every other app</a> · <a href="https://znrock-music.github.io/media/media/lyrics/still-a-spark/">lyrics</a></p>
+<p class="more"><a href="https://znrock-music.github.io/media/">More songs, lyrics and videos</a></p>
+<footer>ZN Rock · rock songs about the stuff people don't say out loud</footer>
+</main>
+<script>(function(){
+var ua=navigator.userAgent||"",android=/Android/i.test(ua),ios=/iPhone|iPad|iPod/i.test(ua);
+var inapp=/Instagram|FBAN|FBAV|FB_IAB|Threads|Barcelona|musical_ly|BytedanceWebview|TikTok|Bluesky|Line\/|Snapchat|Twitter/i.test(ua);
+if(inapp){var h=document.getElementById('hint');if(h)h.style.display='block';}
+document.querySelectorAll('a[data-sp]').forEach(function(a){a.addEventListener('click',function(ev){
+  var kind=a.dataset.sp,id=a.dataset.id,web='https://open.spotify.com/'+kind+'/'+id;
+  if(!inapp||!(android||ios))return;
+  ev.preventDefault();
+  var app=android?('intent://'+kind+'/'+id+'#Intent;scheme=spotify;package=com.spotify.music;S.browser_fallback_url='+encodeURIComponent(web)+';end'):('spotify:'+kind+':'+id);
+  var gone=false,t=Date.now();
+  var onhide=function(){if(document.hidden)gone=true;};
+  document.addEventListener('visibilitychange',onhide);
+  window.location.href=app;
+  if(ios)setTimeout(function(){document.removeEventListener('visibilitychange',onhide);if(!gone&&Date.now()-t<4000)window.location.href=web;},1600);
+});});
+})();</script></body></html>
