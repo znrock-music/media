@@ -40,7 +40,8 @@ footer{margin-top:30px;color:var(--muted);font-size:14px}
 <p class="more"><a href="https://znrock-music.github.io/media/">More songs, lyrics and videos</a></p>
 <footer>ZN Rock · rock songs about the stuff people don't say out loud</footer>
 </main>
-<script>(function(){
+<script>(function(){var G="znrock";function cnt(x){if(!G)return;try{var c='https://'+G+'.goatcounter.com/count?p='+encodeURIComponent('/start/'+x)+'&r='+encodeURIComponent(document.referrer||'')+'&rnd='+Math.random();if(!(navigator.sendBeacon&&navigator.sendBeacon(c)))new Image().src=c}catch(e){}}document.querySelectorAll('a[data-sp]').forEach(function(a){a.addEventListener('click',function(){cnt(a.dataset.sp=='artist'?'tap-follow':'tap-play')})});cnt('view')})();
+(function(){
 var ua=navigator.userAgent||"",android=/Android/i.test(ua),ios=/iPhone|iPad|iPod/i.test(ua);
 var inapp=/Instagram|FBAN|FBAV|FB_IAB|Threads|Barcelona|musical_ly|BytedanceWebview|TikTok|Bluesky|Line\/|Snapchat|Twitter/i.test(ua);
 if(inapp){var h=document.getElementById('hint');if(h)h.style.display='block';}
